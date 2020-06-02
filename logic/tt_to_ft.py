@@ -142,7 +142,7 @@ def structure_bvp(atmo_class, atmo_args, atmo_kwargs, profiles, scalars):
     grad_ad    = -(atmosphere.g/atmosphere.Cp)
     T_TT['g']  = atmosphere.T0['g'] + T1_TT
     T_ad       = 1 + grad_ad*(z - Lz)
-    dT_ad_TT   = np.mean(T_TT.interpolate(z=Lz)['g'] - T_TT.interpolate(z=0)['g']) - np.abs(grad_ad*Lz)
+    dT_ad_TT   = np.abs(np.mean(T_TT.interpolate(z=Lz)['g'] - T_TT.interpolate(z=0)['g'])) - np.abs(grad_ad*Lz)
     dT_ad_FT   = dT_ad_TT / Nu
     T1_FT['g'] = dT_ad_FT*((T_TT['g'] - T_ad)/dT_ad_TT) + T_ad - atmosphere.T0['g']
 

@@ -31,7 +31,6 @@ fig1.add_field(0, 'Ma_rms')
 figNu = ScalarFigure(1, 1, col_in=6, fig_name='nu_trace')
 figNu.add_field(0, 'Nu')
 
-
 # Re vs. time
 fig2 = ScalarFigure(1, 1, col_in=6, fig_name='pe_trace')
 fig2.add_field(0, 'Pe_rms')
