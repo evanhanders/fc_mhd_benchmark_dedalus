@@ -20,7 +20,7 @@ def NCC(domain, field_function, constant_bases=['x',], scales=1, return_scales=1
             The scale at which to return the NCC
     """
     NCC = domain.new_field()
-    NCC.meta[constant_bases]['constant'] = True
+    NCC.meta[tuple(constant_bases)]['constant'] = True
     NCC.set_scales(scales, keep_data=False)
     NCC['g'] = field_function
     NCC.set_scales(return_scales, keep_data=False)
@@ -40,6 +40,7 @@ class IdealGasAtmosphere():
             A dictionary that defines the fundamentals elements of the atmosphere (T, ρ, etc)
     """
     atmosphere_params = OrderedDict()
+    function_fields   = ['T', 'ρ', 'P']
 
     def __init__(self, *args, R=1, ɣ=5./3, **kwargs):
         """
@@ -110,14 +111,8 @@ class IdealGasAtmosphere():
             self['Δs/Cp'] = np.mean(basis.Interpolate(self['s_div_Cp'], delta_s_bounds[-1])['g']) \
                            -np.mean(basis.Interpolate(self['s_div_Cp'], delta_s_bounds[0])['g'])
 
-        for k in self.keys():
-            print(type(self[k]), k)
-        problem.parameters['T0']        = T_field
-        problem.parameters['T0_z']      = Tz_field
-        problem.parameters['ρ0']        = ρ_field
-        problem.parameters['lnρ0']      = lnρ_field
-        problem.parameters['lnρ0_z']    = lnρz_field
-        problem.parameters['s0_div_Cp'] = s_div_Cp
-
-        for pk in ['R', 'ɣ', 'Cp', 'Cv']:
-            problem.parameters[pk] = self[pk]
+        for k in self.atmosphere_params.keys():
+            if k in self.function_fields:
+                continue
+            problem.parameters[k] = self[k]
+            print(type(self[k]), type(self[k]) == float, type(self[k]) == int, k)

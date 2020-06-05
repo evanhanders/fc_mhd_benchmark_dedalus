@@ -7,5 +7,5 @@ setup(name='fce_dedalus',
       author='Evan Anders',
       author_email='evan.anders@colorado.edu',
       license='GPL-3.0',
-      packages=['fce_dedalus', 'fce_dedalus/logic', 'fce_dedalus/atmospheres'],
+      packages=['fce_dedalus', 'fce_dedalus/logic', 'fce_dedalus/atmospheres', 'fce_dedalus/domains'],
       zip_safe=False)
