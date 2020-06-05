@@ -20,7 +20,7 @@ def NCC(domain, field_function, constant_bases=['x',], scales=1, return_scales=1
             The scale at which to return the NCC
     """
     NCC = domain.new_field()
-    NCC.meta[*constant_bases]['constant'] = True
+    NCC.meta[constant_bases]['constant'] = True
     NCC.set_scales(scales, keep_data=False)
     NCC['g'] = field_function
     NCC.set_scales(return_scales, keep_data=False)
@@ -36,9 +36,10 @@ class IdealGasAtmosphere():
     - build_atmosphere()
 
     # Attributes
-        self.atmosphere_parameters (OrderedDictionary) :
+        self.atmosphere_params (OrderedDictionary) :
             A dictionary that defines the fundamentals elements of the atmosphere (T, ρ, etc)
     """
+    atmosphere_params = OrderedDict()
 
     def __init__(self, *args, R=1, ɣ=5./3, **kwargs):
         """
@@ -52,8 +53,6 @@ class IdealGasAtmosphere():
             args, kwargs :
                 Additional arguments and keyword arguments for the _set_stratification() function
         """
-        self.atmosphere_parameters = OrderedDict()
-
         # Basic thermodynamics
         self['R'] = R
         self['ɣ'] = ɣ
@@ -61,12 +60,15 @@ class IdealGasAtmosphere():
         self['Cv'] = self['Cp'] = self['R']
        
         self._set_stratification(*args, **kwargs)
-        self.['P'] = lambda z : self['R']*( self['ρ'](z) * self['T'](z) )
+        self['P'] = lambda z : self['R']*( self['ρ'](z) * self['T'](z) )
 
-    def __getitem__(self, key)
-        return self.atmosphere_parameters[key]
+    def __getitem__(self, key):
+        return self.atmosphere_params[key]
 
-    def _set_stratification(self)
+    def __setitem__(self, key, value):
+        self.atmosphere_params[key] = value
+
+    def _set_stratification(self):
         """ Abstract function; should set T, ρ, and L in child classes. """
         pass
 
@@ -91,23 +93,25 @@ class IdealGasAtmosphere():
         z_name  = domain.bases[-1].name
         z_de    = domain.grid(-1, scales=domain.dealias)
 
-        T_field   = NCC(domain, self['T'](z_de),         scales=domain.dealias, return_scales=domain.dealias, **kwargs)
-        ρ_field   = NCC(domain, self['ρ'](z_de),         scales=domain.dealias, return_scales=domain.dealias, **kwargs)
-        lnρ_field = NCC(domain, np.log(self['ρ'](z_de)), scales=domain.dealias, return_scales=domain.dealias, **kwargs)
+        self['T_field']   = NCC(domain, self['T'](z_de),         scales=domain.dealias, return_scales=domain.dealias, **kwargs)
+        self['ρ_field']   = NCC(domain, self['ρ'](z_de),         scales=domain.dealias, return_scales=domain.dealias, **kwargs)
+        self['lnρ_field'] = NCC(domain, np.log(self['ρ'](z_de)), scales=domain.dealias, return_scales=domain.dealias, **kwargs)
         
-        Tz_field   = NCC(domain, 0, **kwargs)
-        lnρz_field = NCC(domain, 0, **kwargs)
-        T_field.differentiate(z_name, out=Tz_field)
-        lnρ_field.differentiate(z_name, out=Tz_field)
+        self['Tz_field']   = NCC(domain, 0, **kwargs)
+        self['lnρz_field'] = NCC(domain, 0, **kwargs)
+        self['T_field'].differentiate(z_name,   out=self['Tz_field'])
+        self['lnρ_field'].differentiate(z_name, out=self['lnρz_field'])
 
-        s_div_Cp = (1/self['ɣ']) * (T_field['g'] - (self['ɣ']-1)*lnρ_field['g'] )
-        s_div_Cp = NCC(domain, s_div_Cp, scales=domain.dealias, return_scales=domain.dealias, **kwargs)
+        self['s_div_Cp'] = (1/self['ɣ']) * (self['T_field']['g'] - (self['ɣ']-1)*self['lnρ_field']['g'] )
+        self['s_div_Cp'] = NCC(domain, self['s_div_Cp'], scales=domain.dealias, return_scales=domain.dealias, **kwargs)
         if delta_s_bounds is None:
-            self['Δs/Cp'] = np.mean(s_div_Cp.integrate(z_name)['g'])
+            self['Δs/Cp'] = np.mean(self['s_div_Cp'].integrate(z_name)['g'])
         else:
-            self['Δs/Cp'] = np.mean(basis.Interpolate(s_div_Cp, delta_s_bounds[-1])['g'])
-                           -np.mean(basis.Interpolate(s_div_Cp, delta_s_bounds[0])['g'])
+            self['Δs/Cp'] = np.mean(basis.Interpolate(self['s_div_Cp'], delta_s_bounds[-1])['g']) \
+                           -np.mean(basis.Interpolate(self['s_div_Cp'], delta_s_bounds[0])['g'])
 
+        for k in self.keys():
+            print(type(self[k]), k)
         problem.parameters['T0']        = T_field
         problem.parameters['T0_z']      = Tz_field
         problem.parameters['ρ0']        = ρ_field
